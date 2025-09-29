@@ -3,11 +3,11 @@ import os
 import logging
 from typing import Dict
 
-from aiogram.types import Message
-from aiogram.filters import Command
 from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
+from aiogram.types import Message
+from aiogram.filters import Command
 
 from fastapi import FastAPI
 from TikTokLive import TikTokLiveClient
@@ -30,7 +30,7 @@ except ValueError:
     logger.error("CHAT_ID должен быть числом")
     raise SystemExit(1)
 
-USERNAMES = ["lvbliss2", "bliss_nt", "lv.bliss", "n3v3rdie1"]
+USERNAMES = ["bliss_nt", "n3v3rdie1", "lv.bliss"]
 user_status: Dict[str, bool] = {u: False for u in USERNAMES}
 monitor_tasks: Dict[str, asyncio.Task] = {}
 
@@ -137,4 +137,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
+
 
