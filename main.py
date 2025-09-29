@@ -3,10 +3,11 @@ import os
 import logging
 from typing import Dict
 
-from aiogram import Bot, Dispatcher, Router
 from aiogram.types import Message
 from aiogram.filters import Command
+from aiogram import Bot, Dispatcher, Router
 from aiogram.enums import ParseMode
+from aiogram.client.default import DefaultBotProperties
 
 from fastapi import FastAPI
 from TikTokLive import TikTokLiveClient
@@ -34,7 +35,10 @@ user_status: Dict[str, bool] = {u: False for u in USERNAMES}
 monitor_tasks: Dict[str, asyncio.Task] = {}
 
 # ---------------- Telegram ----------------
-bot = Bot(token=TELEGRAM_TOKEN, parse_mode=ParseMode.HTML)
+bot = Bot(
+    token=TELEGRAM_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 router = Router()
 dp = Dispatcher()
 dp.include_router(router)
@@ -133,3 +137,4 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
+
