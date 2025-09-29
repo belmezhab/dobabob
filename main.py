@@ -32,7 +32,7 @@ except ValueError:
     raise SystemExit(1)
 
 USERNAMES = ["ya_bl1ss", "n3v3rdie1", "bliss_nt", "lv.bliss"]
-user_status: Dict[str, bool] = {u: False for u in USERNAMES}
+user_status: Dict[str, bool | None] = {u: None for u in USERNAMES}
 monitor_tasks: Dict[str, asyncio.Task] = {}
 
 # ---------------- Telegram ----------------
@@ -77,13 +77,20 @@ async def monitor_user(username: str):
                     break
 
                 prev = user_status.get(username)
-                if is_live and not prev:
+
+                if prev is None:
+                    # первый запуск — просто фиксируем состояние
+                    user_status[username] = is_live
+                    logger.info("%s стартовое состояние: %s", username, "LIVE" if is_live else "OFFLINE")
+
+                elif is_live and not prev:
                     user_status[username] = True
                     await bot.send_message(
                         CHAT_ID,
                         f"🔴 <b>{username}</b> начал эфир!\nhttps://www.tiktok.com/@{username}/live",
                         disable_web_page_preview=True
                     )
+
                 elif not is_live and prev:
                     user_status[username] = False
                     await bot.send_message(
@@ -117,7 +124,7 @@ def create_app() -> web.Application:
     app = web.Application()
     SimpleRequestHandler(dp, bot).register(app, path="/webhook")
     setup_application(app, dp, bot=bot)
-    app.router.add_get("/ping", ping)  # 🔥 сюда добавлен health check
+    app.router.add_get("/ping", ping)  # 🔥 health check
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     return app
@@ -147,6 +154,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
-
-
-
