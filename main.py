@@ -55,7 +55,7 @@ async def handle_start_command(message: Message):
         status = user_status.get(u)
         emoji = "❓" if status is None else ("🔴" if status else "⚪️")
         text_status = "в эфире" if status else "не в эфире"
-        parts.append(f"{emoji} {u} — {text_status}\nhttps://www.tiktok.com/@{u}/live")
+        parts.append(f"{emoji} <b>{u}<b> — {text_status}\nhttps://www.tiktok.com/@{u}/live")
     await message.answer("\n\n".join(parts), disable_web_page_preview=True)
 
 
@@ -81,13 +81,15 @@ async def monitor_user(username: str):
                     user_status[username] = True
                     await bot.send_message(
                         CHAT_ID,
-                        f"🔴 {username} начал эфир!\nhttps://www.tiktok.com/@{username}/live"
+                        f"🔴 <b>{username}</b> начал эфир!\nhttps://www.tiktok.com/@{username}/live",
+                        disable_web_page_preview=True
                     )
                 elif not is_live and prev:
                     user_status[username] = False
                     await bot.send_message(
                         CHAT_ID,
-                        f"⚪️ {username} завершил эфир."
+                        f"⚪️ <b>{username}</b> завершил эфир.",
+                        disable_web_page_preview=True
                     )
 
                 # Проверяем каждые 15 секунд
@@ -145,4 +147,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
+
 
