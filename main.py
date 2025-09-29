@@ -8,8 +8,10 @@ from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import Message
 from aiogram.filters import Command
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
 from fastapi import FastAPI
+from aiohttp import web
 from TikTokLive import TikTokLiveClient
 import httpx
 
@@ -46,7 +48,6 @@ dp.include_router(router)
 
 @router.message(Command("start"))
 async def handle_start_command(message: Message):
-    # Бот отвечает только твоему чату
     if message.chat.id != CHAT_ID:
         return
 
@@ -69,12 +70,12 @@ async def monitor_user(username: str):
                 try:
                     is_live = await client.is_live()
                 except httpx.TimeoutException:
-                    logger.warning("%s: timeout, повтор через 10с", username)
-                    await asyncio.sleep(10)
+                    logger.warning("%s: timeout, повтор через 15с", username)
+                    await asyncio.sleep(15)
                     continue
                 except Exception as e:
                     logger.warning("%s: ошибка при запросе (%s), пересоздание клиента", username, e)
-                    break  # пересоздадим client
+                    break
 
                 prev = user_status.get(username)
                 if is_live and not prev:
@@ -89,47 +90,51 @@ async def monitor_user(username: str):
                         CHAT_ID,
                         f"⚪️ {username} завершил эфир."
                     )
-                await asyncio.sleep(10)
+
+                # Проверяем каждые 15 секунд
+                await asyncio.sleep(15)
         except Exception as e:
             logger.exception("%s: критическая ошибка %s", username, e)
         finally:
-            # ждём перед новой попыткой
             await asyncio.sleep(15)
 
 
-# ---------------- FastAPI ----------------
-app = FastAPI()
+# ---------------- Webhook Server ----------------
+async def on_startup(app: web.Application):
+    webhook_url = f"{os.getenv('RENDER_EXTERNAL_URL')}/webhook"
+    await bot.set_webhook(webhook_url)
+    logger.info("Webhook установлен: %s", webhook_url)
+
+async def on_shutdown(app: web.Application):
+    await bot.session.close()
 
 
-@app.get("/ping")
-async def ping():
-    # Проверяем, живы ли все задачи мониторинга
-    dead_users = [u for u, t in monitor_tasks.items() if t.done()]
-    if dead_users:
-        return {"status": "error", "dead_monitors": dead_users}
-    return {"status": "ok"}
+def create_app() -> web.Application:
+    app = web.Application()
+    SimpleRequestHandler(dp, bot).register(app, path="/webhook")
+    setup_application(app, dp, bot=bot)
+    app.on_startup.append(on_startup)
+    app.on_shutdown.append(on_shutdown)
+    return app
 
 
-async def run_server():
-    import uvicorn
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info")
-    server = uvicorn.Server(config)
-    await server.serve()
-
-
-# ---------------- Main ----------------
 async def main():
-    # Запускаем мониторинг для всех пользователей
+    # Запускаем мониторинг
     for u in USERNAMES:
         task = asyncio.create_task(monitor_user(u), name=f"monitor-{u}")
         monitor_tasks[u] = task
 
-    # Запускаем Telegram и HTTP сервер
-    await asyncio.gather(
-        dp.start_polling(bot),
-        run_server(),
-        *monitor_tasks.values(),
-    )
+    # aiohttp сервер (Telegram webhook + мониторинг в фоне)
+    app = create_app()
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", int(os.getenv("PORT", 8000)))
+    await site.start()
+
+    logger.info("Сервер запущен")
+    # держим фоновые задачи
+    await asyncio.gather(*monitor_tasks.values())
 
 
 if __name__ == "__main__":
@@ -137,5 +142,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
-
-
