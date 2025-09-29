@@ -10,7 +10,6 @@ from aiogram.types import Message
 from aiogram.filters import Command
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 
-from fastapi import FastAPI
 from aiohttp import web
 from TikTokLive import TikTokLiveClient
 import httpx
@@ -108,11 +107,15 @@ async def on_startup(app: web.Application):
 async def on_shutdown(app: web.Application):
     await bot.session.close()
 
+# healthcheck endpoint
+async def ping(request):
+    return web.json_response({"status": "ok"})
 
 def create_app() -> web.Application:
     app = web.Application()
     SimpleRequestHandler(dp, bot).register(app, path="/webhook")
     setup_application(app, dp, bot=bot)
+    app.router.add_get("/ping", ping)  # 🔥 сюда добавлен health check
     app.on_startup.append(on_startup)
     app.on_shutdown.append(on_shutdown)
     return app
