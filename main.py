@@ -55,7 +55,7 @@ async def handle_start_command(message: Message):
         status = user_status.get(u)
         emoji = "❓" if status is None else ("🔴" if status else "⚪️")
         text_status = "в эфире" if status else "не в эфире"
-        parts.append(f"{emoji} <b>{u}<b> — {text_status}\nhttps://www.tiktok.com/@{u}/live")
+        parts.append(f"{emoji} <b>{u}</b> — {text_status}\nhttps://www.tiktok.com/@{u}/live")
     await message.answer("\n\n".join(parts), disable_web_page_preview=True)
 
 
@@ -147,5 +147,6 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
+
 
 
