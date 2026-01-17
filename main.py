@@ -31,7 +31,7 @@ except ValueError:
     logger.error("CHAT_ID должен быть числом")
     raise SystemExit(1)
 
-USERNAMES = ["ya_bl1ss", "n3v3rdie1", "bliss_nt", "lv.bliss", "esc3v"]
+USERNAMES = ["bliss1337"]
 user_status: Dict[str, bool | None] = {u: None for u in USERNAMES}
 monitor_tasks: Dict[str, asyncio.Task] = {}
 
@@ -154,4 +154,5 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         logger.info("Завершение работы...")
+
 
